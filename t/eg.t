@@ -6,7 +6,7 @@ plan tests => 1;
 
 use URI::GoogleChart;
 
-open(my $fh, ">", "eg.html") || die "Can't create eg.html: $!";
+open(my $fh, ">", "examples.html") || die "Can't create examples.html: $!";
 print $fh <<EOT;
 <html>
 <head>
@@ -15,29 +15,59 @@ print $fh <<EOT;
   body {
     margin: 20px 50px;
     background-color: #ddd;
+    max-width: 700px;
+    font-family: sans-serif;
   }
   div.eg {
-    padding: 10px;
+    background-color: #eee;
+    padding: 10px 20px;
+    border: 1px solid #aaa;
+    margin: 30px 0;
+    -webkit-box-shadow: 5px 5px 5px #aaa;
   }
   .even {
     background-color: #edf5ff;
   }
+  pre {
+    margin: 0px;
+    font-weight: bold;
+  }
   .uri {
-    font-size: smaller;
+    font-size: x-small;
   }
   img {
-    border: 1px solid #888;
-    padding: 4px;
+    border: 1px solid #aaa;
+    padding: 5px;
+    margin: 15px 0;
   }
   </style>
 </head>
+
 <body>
 <h1>URI::GoogleChart Examples</h1>
+
+<p> This page shows Perl code snippets using the <a
+href="http://search.cpan.org/dist/URI-GoogleChart">URI::GoogleChart</a> module
+to generate chart URLs and the corresponding images that the <a
+href="http://code.google.com/apis/chart/">Google Chart service</a> generate
+from them.
+
+</p>
+
 EOT
 
 chart("pie-3d", 250, 100,
     data => [60, 40],
     chl => "Hello|World",
+);
+
+chart("pie", 500, 150,
+    data => [80, 20],
+    color => ["yellow", "black"],
+    chl => "Resembes Pack-man|Does not resemble Pac-man",
+    chf => "bg,s,000000",
+    chp => 0.6,
+    margin => [0, 30, 10, 10],
 );
 
 chart("lines", 200, 125,
@@ -79,21 +109,49 @@ chart("vertical-grouped-bars", 300, 125,
 );
 
 chart("gom", 125, 80, data => 80, chl => 80, title => "Awsomness");
+
 chart("usa", 200, 100);
+
+chart("europe", 300, 150,
+    color => ["white", "green", "red"],
+    chf => "bg,s,EAF7FE", # water
+    # nordic populations 
+    chld => "NOSEDKFIIS",
+    data => [4.5e6, 9e6, 5.3e6, 5.1e6, 307261],
+);
 
 
 print $fh <<EOT;
+
+<p style="font-size: small;">Page generated with URI::GoogleChart v$URI::GoogleChart::VERSION</p>
 </body>
 </html>
 EOT
 
 ok(close($fh));
 
-my $count;
 sub chart {
-    $count++;
-    my $class = "eg";
-    $class .= " even" if $count % 2 == 0;
     my $uri = URI::GoogleChart->new(@_);
-    print $fh qq(<div class="$class"><span class="uri">$uri</span><br><img src='$uri'></div>\n);
+
+    (undef, undef, my $line) = caller;
+    seek(DATA, 0, 0);
+    <DATA> while --$line;
+    my $src = <DATA>;
+    unless ($src =~ /;$/) {
+	while (<DATA>) {
+	    $src .= $_;
+	    last if /^\);/;
+	}
+    }
+    $src =~ s/^chart/\$u = URI::GoogleChart->new/;
+
+    print $fh <<EOT
+  <div class="eg">
+    <pre class="src">$src</pre>
+    <div><img src='$uri'></div>
+    <span class="uri">$uri</span>
+  </div>
+EOT
 }
+
+__END__
