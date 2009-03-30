@@ -47,56 +47,70 @@ from them.
   <div class="eg">
     <pre class="src">$u = URI::GoogleChart->new("pie-3d", 250, 100,
     data => [60, 40],
-    chl => "Hello|World",
+    label => ["Hello", "World"],
 );
 </pre>
-    <div><img src='http://chart.apis.google.com/chart?cht=p3&chs=250x100&chd=t:100,66.7&chl=Hello%7CWorld'></div>
-    <span class="uri">http://chart.apis.google.com/chart?cht=p3&chs=250x100&chd=t:100,66.7&chl=Hello%7CWorld</span>
+    <div><img src='http://chart.apis.google.com/chart?cht=p3&amp;chs=250x100&amp;chd=t:100,66.7&amp;chl=Hello%7CWorld'></div>
+    <span class="uri">http://chart.apis.google.com/chart?cht=p3&amp;chs=250x100&amp;chd=t:100,66.7&amp;chl=Hello%7CWorld</span>
   </div>
   <div class="eg">
     <pre class="src">$u = URI::GoogleChart->new("pie", 500, 150,
     data => [80, 20],
     color => ["yellow", "black"],
-    chl => "Resembes Pack-man|Does not resemble Pac-man",
-    chf => "bg,s,000000",
-    chp => 0.6,
+    label => ["Resembes Pack-man", "Does not resemble Pac-man"],
+    background => "black",
+    rotate => 35,
     margin => [0, 30, 10, 10],
 );
 </pre>
-    <div><img src='http://chart.apis.google.com/chart?cht=p&chs=500x150&chco=FFFF00,000000&chd=t:100,25&chf=bg,s,000000&chl=Resembes+Pack-man%7CDoes+not+resemble+Pac-man&chma=0,30,10,10&chp=0.6'></div>
-    <span class="uri">http://chart.apis.google.com/chart?cht=p&chs=500x150&chco=FFFF00,000000&chd=t:100,25&chf=bg,s,000000&chl=Resembes+Pack-man%7CDoes+not+resemble+Pac-man&chma=0,30,10,10&chp=0.6</span>
+    <div><img src='http://chart.apis.google.com/chart?cht=p&amp;chs=500x150&amp;chco=FFFF00,000000&amp;chd=t:100,25&amp;chf=bg,s,000000&amp;chl=Resembes+Pack-man%7CDoes+not+resemble+Pac-man&amp;chma=0,30,10,10&amp;chp=0.61'></div>
+    <span class="uri">http://chart.apis.google.com/chart?cht=p&amp;chs=500x150&amp;chco=FFFF00,000000&amp;chd=t:100,25&amp;chf=bg,s,000000&amp;chl=Resembes+Pack-man%7CDoes+not+resemble+Pac-man&amp;chma=0,30,10,10&amp;chp=0.61</span>
+  </div>
+  <div class="eg">
+    <pre class="src">$u = URI::GoogleChart->new("pie", 250, 200,
+    data => [(1) x 12],
+    rotate => -90,
+    label => [1 .. 12],
+    encoding => "s",
+    background => "transparent",
+);
+</pre>
+    <div><img src='http://chart.apis.google.com/chart?cht=p&amp;chs=250x200&amp;chd=s:999999999999&amp;chf=bg,s,00000000&amp;chl=1%7C2%7C3%7C4%7C5%7C6%7C7%7C8%7C9%7C10%7C11%7C12&amp;chp=4.71'></div>
+    <span class="uri">http://chart.apis.google.com/chart?cht=p&amp;chs=250x200&amp;chd=s:999999999999&amp;chf=bg,s,00000000&amp;chl=1%7C2%7C3%7C4%7C5%7C6%7C7%7C8%7C9%7C10%7C11%7C12&amp;chp=4.71</span>
   </div>
   <div class="eg">
     <pre class="src">$u = URI::GoogleChart->new("lines", 200, 125,
-    data => [40,60,60,45,47,75,70,72,],
-    min => 0, max => 100,
+    data => [37,60,60,45,47,74,70,72,],
+    range_show => "left",
+    range_round => 1,
 );
 </pre>
-    <div><img src='http://chart.apis.google.com/chart?cht=lc&chs=200x125&chd=t:40,60,60,45,47,75,70,72'></div>
-    <span class="uri">http://chart.apis.google.com/chart?cht=lc&chs=200x125&chd=t:40,60,60,45,47,75,70,72</span>
+    <div><img src='http://chart.apis.google.com/chart?cht=lc&amp;chs=200x125&amp;chd=t:5,62.5,62.5,25,30,97.5,87.5,92.5&amp;chxr=0,35,75&amp;chxt=y'></div>
+    <span class="uri">http://chart.apis.google.com/chart?cht=lc&amp;chs=200x125&amp;chd=t:5,62.5,62.5,25,30,97.5,87.5,92.5&amp;chxr=0,35,75&amp;chxt=y</span>
   </div>
   <div class="eg">
-    <pre class="src">$u = URI::GoogleChart->new("sparklines", 200, 125,
+    <pre class="src">$u = URI::GoogleChart->new("sparklines", 200, 75,
     data => [27,25,60,31,25,39,25,31,26,28,80,28,27,31,27,29,26,35,70,25],
-    min => 0, max => 100,
+    range_round => 1,
 );
 </pre>
-    <div><img src='http://chart.apis.google.com/chart?cht=ls&chs=200x125&chd=t:27,25,60,31,25,39,25,31,26,28.0,80,28.0,27,31,27,29.0,26,35,70,25'></div>
-    <span class="uri">http://chart.apis.google.com/chart?cht=ls&chs=200x125&chd=t:27,25,60,31,25,39,25,31,26,28.0,80,28.0,27,31,27,29.0,26,35,70,25</span>
+    <div><img src='http://chart.apis.google.com/chart?cht=ls&amp;chs=200x75&amp;chd=t:31.8,29.4,70.6,36.5,29.4,45.9,29.4,36.5,30.6,32.9,94.1,32.9,31.8,36.5,31.8,34.1,30.6,41.2,82.4,29.4'></div>
+    <span class="uri">http://chart.apis.google.com/chart?cht=ls&amp;chs=200x75&amp;chd=t:31.8,29.4,70.6,36.5,29.4,45.9,29.4,36.5,30.6,32.9,94.1,32.9,31.8,36.5,31.8,34.1,30.6,41.2,82.4,29.4</span>
   </div>
   <div class="eg">
-    <pre class="src">$u = URI::GoogleChart->new("lxy", 200, 125,
+    <pre class="src">$u = URI::GoogleChart->new("lxy", 250, 125,
     data => [
         [10,20,40,80,90,95,99],
 	[20,30,40,50,60,70,80],
         [undef],
         [5,25,45,65,85],
     ],
+    label => ["blue", "red"],
     color => [qw(3072F3 red)],
 );
 </pre>
-    <div><img src='http://chart.apis.google.com/chart?cht=lxy&chs=200x125&chco=3072F3,FF0000&chd=t:5.3,16.0,37.2,79.8,90.4,95.7,100%7C16.0,26.6,37.2,47.9,58.5,69.1,79.8%7C-1%7C0,21.3,42.6,63.8,85.1'></div>
-    <span class="uri">http://chart.apis.google.com/chart?cht=lxy&chs=200x125&chco=3072F3,FF0000&chd=t:5.3,16.0,37.2,79.8,90.4,95.7,100%7C16.0,26.6,37.2,47.9,58.5,69.1,79.8%7C-1%7C0,21.3,42.6,63.8,85.1</span>
+    <div><img src='http://chart.apis.google.com/chart?cht=lxy&amp;chs=250x125&amp;chco=3072F3,FF0000&amp;chd=t:5.3,16.0,37.2,79.8,90.4,95.7,100%7C16.0,26.6,37.2,47.9,58.5,69.1,79.8%7C-1%7C0,21.3,42.6,63.8,85.1&amp;chdl=blue%7Cred'></div>
+    <span class="uri">http://chart.apis.google.com/chart?cht=lxy&amp;chs=250x125&amp;chco=3072F3,FF0000&amp;chd=t:5.3,16.0,37.2,79.8,90.4,95.7,100%7C16.0,26.6,37.2,47.9,58.5,69.1,79.8%7C-1%7C0,21.3,42.6,63.8,85.1&amp;chdl=blue%7Cred</span>
   </div>
   <div class="eg">
     <pre class="src">$u = URI::GoogleChart->new("horizontal-stacked-bars", 200, 150,
@@ -108,8 +122,8 @@ from them.
     color => [qw(3072F3 f00)],
 );
 </pre>
-    <div><img src='http://chart.apis.google.com/chart?cht=bhs&chs=200x150&chco=3072F3,ff0000&chd=t:5,25,30,40,20%7C25,30,50,20,10'></div>
-    <span class="uri">http://chart.apis.google.com/chart?cht=bhs&chs=200x150&chco=3072F3,ff0000&chd=t:5,25,30,40,20%7C25,30,50,20,10</span>
+    <div><img src='http://chart.apis.google.com/chart?cht=bhs&amp;chs=200x150&amp;chco=3072F3,ff0000&amp;chd=t:5,25,30,40,20%7C25,30,50,20,10'></div>
+    <span class="uri">http://chart.apis.google.com/chart?cht=bhs&amp;chs=200x150&amp;chco=3072F3,ff0000&amp;chd=t:5,25,30,40,20%7C25,30,50,20,10</span>
   </div>
   <div class="eg">
     <pre class="src">$u = URI::GoogleChart->new("vertical-grouped-bars", 300, 125,
@@ -121,34 +135,71 @@ from them.
     chco => "3072F3,ff0000",
 );
 </pre>
-    <div><img src='http://chart.apis.google.com/chart?cht=bvg&chs=300x125&chco=3072F3,ff0000&chd=t:10,50,60,80,40%7C50,60,100,40,20'></div>
-    <span class="uri">http://chart.apis.google.com/chart?cht=bvg&chs=300x125&chco=3072F3,ff0000&chd=t:10,50,60,80,40%7C50,60,100,40,20</span>
+    <div><img src='http://chart.apis.google.com/chart?cht=bvg&amp;chs=300x125&amp;chco=3072F3,ff0000&amp;chd=t:10,50,60,80,40%7C50,60,100,40,20'></div>
+    <span class="uri">http://chart.apis.google.com/chart?cht=bvg&amp;chs=300x125&amp;chco=3072F3,ff0000&amp;chd=t:10,50,60,80,40%7C50,60,100,40,20</span>
   </div>
   <div class="eg">
-    <pre class="src">$u = URI::GoogleChart->new("gom", 125, 80, data => 80, chl => 80, title => "Awsomness");
+    <pre class="src">$u = URI::GoogleChart->new("vertical-stacked-bars", 150, 120,
+    data => [10, -10, -5, 25, 15, 5],
+    chbh => "a",
+    color => "gray",
+    margin => 5,
+);
 </pre>
-    <div><img src='http://chart.apis.google.com/chart?cht=gom&chs=125x80&chd=t:80&chl=80&chtt=Awsomness'></div>
-    <span class="uri">http://chart.apis.google.com/chart?cht=gom&chs=125x80&chd=t:80&chl=80&chtt=Awsomness</span>
+    <div><img src='http://chart.apis.google.com/chart?cht=bvs&amp;chs=150x120&amp;chbh=a&amp;chco=808080&amp;chd=t:57.1,0,14.3,100,71.4,42.9&amp;chma=5,5,5,5&amp;chp=0.29'></div>
+    <span class="uri">http://chart.apis.google.com/chart?cht=bvs&amp;chs=150x120&amp;chbh=a&amp;chco=808080&amp;chd=t:57.1,0,14.3,100,71.4,42.9&amp;chma=5,5,5,5&amp;chp=0.29</span>
+  </div>
+  <div class="eg">
+    <pre class="src">$u = URI::GoogleChart->new("vertical-stacked-bars", 150, 120,
+    data => [-10, -10, -5, -25, -15, -5],
+    max => 0,
+    chbh => "a",
+    color => "gray",
+    margin => 5,
+);
+</pre>
+    <div><img src='http://chart.apis.google.com/chart?cht=bvs&amp;chs=150x120&amp;chbh=a&amp;chco=808080&amp;chd=t:60,60,80,0,40,80&amp;chma=5,5,5,5&amp;chp=1.00'></div>
+    <span class="uri">http://chart.apis.google.com/chart?cht=bvs&amp;chs=150x120&amp;chbh=a&amp;chco=808080&amp;chd=t:60,60,80,0,40,80&amp;chma=5,5,5,5&amp;chp=1.00</span>
+  </div>
+  <div class="eg">
+    <pre class="src">$u = URI::GoogleChart->new("venn", 200, 100,
+    data => [100, 20, 20, 20, 20, 0, 0],
+    color => ["red", "lime", "blue"],
+    label => ["First", "Second", "Third"],
+);
+</pre>
+    <div><img src='http://chart.apis.google.com/chart?cht=v&amp;chs=200x100&amp;chco=FF0000,00FF00,0000FF&amp;chd=t:100,20,20,20,20,0,0&amp;chdl=First%7CSecond%7CThird'></div>
+    <span class="uri">http://chart.apis.google.com/chart?cht=v&amp;chs=200x100&amp;chco=FF0000,00FF00,0000FF&amp;chd=t:100,20,20,20,20,0,0&amp;chdl=First%7CSecond%7CThird</span>
+  </div>
+  <div class="eg">
+    <pre class="src">$u = URI::GoogleChart->new("gom", 125, 80,
+    data => 80,
+    label => 80,
+    title => "Awsomness",
+);
+</pre>
+    <div><img src='http://chart.apis.google.com/chart?cht=gom&amp;chs=125x80&amp;chd=t:80&amp;chl=80&amp;chtt=Awsomness'></div>
+    <span class="uri">http://chart.apis.google.com/chart?cht=gom&amp;chs=125x80&amp;chd=t:80&amp;chl=80&amp;chtt=Awsomness</span>
   </div>
   <div class="eg">
     <pre class="src">$u = URI::GoogleChart->new("usa", 200, 100);
 </pre>
-    <div><img src='http://chart.apis.google.com/chart?cht=t&chtm=usa&chs=200x100'></div>
-    <span class="uri">http://chart.apis.google.com/chart?cht=t&chtm=usa&chs=200x100</span>
+    <div><img src='http://chart.apis.google.com/chart?cht=t&amp;chtm=usa&amp;chs=200x100'></div>
+    <span class="uri">http://chart.apis.google.com/chart?cht=t&amp;chtm=usa&amp;chs=200x100</span>
   </div>
   <div class="eg">
     <pre class="src">$u = URI::GoogleChart->new("europe", 300, 150,
     color => ["white", "green", "red"],
-    chf => "bg,s,EAF7FE", # water
+    background => "EAF7FE", # water blue
     # nordic populations 
     chld => "NOSEDKFIIS",
     data => [4.5e6, 9e6, 5.3e6, 5.1e6, 307261],
 );
 </pre>
-    <div><img src='http://chart.apis.google.com/chart?cht=t&chtm=europe&chs=300x150&chco=FFFFFF,00FF00,FF0000&chd=t:48.2,100,57.4,55.1,0&chf=bg,s,EAF7FE&chld=NOSEDKFIIS'></div>
-    <span class="uri">http://chart.apis.google.com/chart?cht=t&chtm=europe&chs=300x150&chco=FFFFFF,00FF00,FF0000&chd=t:48.2,100,57.4,55.1,0&chf=bg,s,EAF7FE&chld=NOSEDKFIIS</span>
+    <div><img src='http://chart.apis.google.com/chart?cht=t&amp;chtm=europe&amp;chs=300x150&amp;chco=FFFFFF,008000,FF0000&amp;chd=t:48.2,100,57.4,55.1,0&amp;chf=bg,s,EAF7FE&amp;chld=NOSEDKFIIS'></div>
+    <span class="uri">http://chart.apis.google.com/chart?cht=t&amp;chtm=europe&amp;chs=300x150&amp;chco=FFFFFF,008000,FF0000&amp;chd=t:48.2,100,57.4,55.1,0&amp;chf=bg,s,EAF7FE&amp;chld=NOSEDKFIIS</span>
   </div>
 
-<p style="font-size: small;">Page generated with URI::GoogleChart v0.02</p>
+<p style="font-size: small;">Page generated with URI::GoogleChart v0.03</p>
 </body>
 </html>

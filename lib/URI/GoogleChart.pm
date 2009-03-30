@@ -2,7 +2,7 @@ package URI::GoogleChart;
 
 use strict;
 
-our $VERSION = "0.02";
+our $VERSION = "0.03";
 
 use URI;
 use Carp qw(croak carp);
@@ -21,6 +21,7 @@ our %TYPE_ALIAS = (
 
     "pie" => "p",
     "pie-3d" => "p3",
+    "3d-pie" => "p3",
     "concentric-pie" => "pc",
 
     "venn" => "v",
@@ -39,13 +40,40 @@ our %TYPE_ALIAS = (
 );
 
 our %COLOR_ALIAS = (
-    "red" => "FF0000",
-    "blue" => "0000FF",
-    "green" => "00FF00",
-    "yellow" => "FFFF00",
-    "white" => "FFFFFF",
-    "black" => "000000",
-    "transparent" => "FFFFFFFF",
+    "red"     => "FF0000",
+    "lime"    => "00FF00",
+    "blue"    => "0000FF",
+
+    "green"   => "008000",
+    "navy"    => "000080",
+
+    "yellow"  => "FFFF00",
+    "aqua"    => "00FFFF",
+    "fuchsia" => "FF00FF",
+    "maroon"  => "800000",
+    "purple"  => "800080",
+    "olive"   => "808000",
+    "teal"    => "008080",
+
+    "white"   => "FFFFFF",
+    "silver"  => "C0C0C0",
+    "gray"    => "808080",
+    "black"   => "000000",
+
+    "transparent" => "00000000",
+);
+
+our %AXIS_ALIAS = (
+    "left"   => "y",
+    "right"  => "r",
+    "top"    => "t",
+    "bottom" => "y",
+);
+
+our %ENCODING_ALIAS = (
+    "text"     => "t",
+    "simple"   => "s",
+    "extended" => "e",
 );
 
 # constants for data encoding
@@ -78,33 +106,44 @@ sub new {
 
     my %handle = (
 	data => \&_data,
-	group => 1,
+	range => 1,
 	min => 1,
 	max => 1,
+	range_round => 1,
+	range_show => 1,
 	encoding => 1,
 
 	color => sub {
 	    my $v = shift;
 	    $v = [$v] unless ref($v);
-	    for (@$v) {
-		if (my $c = $COLOR_ALIAS{$_}) {
-		    $_ = $c;
-		}
-		elsif (/^[\da-fA-F]{3}\z/) {
-		    $_ = join("", map "$_$_", split(//, $_));
-		}
-	    }
-	    $param{chco} = join(",", @$v);
+	    $param{chco} = join(",", map _color($_), @$v);
+	},
+	background => sub {
+	    $param{chf} = "bg,s," . _color(shift);
 	},
 	title => sub {
 	    my $title = shift; 
 	    ($title, my($color, $size)) = @$title if ref($title) eq "ARRAY";
+	    $title =~ s/\n+\z//;
+	    $title =~ s/\n/|/g;
 	    $param{chtt} = $title;
 	    if (defined($color) || defined($size)) {
-		$color = "" unless defined $color;
+		$color = defined($color) ? _color($color) : "";
 		$size = "" unless defined $size;
 		$param{chts} = "$color,$size";
 	    }
+	},
+	label => sub {
+	    my $lab = shift;
+	    $lab = [$lab] unless ref($lab) eq "ARRAY";
+	    my $k = $param{cht} =~ /^p|^gom$/ ? "chl" : "chdl";
+	    $param{$k} = join("|", @$lab);
+	},
+	rotate => sub {
+	    my $p = shift;
+	    $p += 360 while $p < 0;
+	    $p /= 180 / 3.1416;  # convert to radians
+	    $param{chp} = sprintf "%.2f", $p;
 	},
 	margin => sub {
 	    my $m = shift;
@@ -134,6 +173,12 @@ sub new {
 	$uri->query($_);
     }
     return $uri;
+}
+
+sub _color {
+    local $_ = shift;
+    return $COLOR_ALIAS{$_} ||
+	(/^[\da-fA-F]{3}\z/ ? join("", map "$_$_", split(//, $_)) : $_);
 }
 
 sub _sort_chart_keys {
@@ -167,14 +212,16 @@ sub _data {
 	$data = [[$data]];
     }
 
-    my $group = _deep_copy($opt->{group});
-    $group->{""}{min} = $opt->{min};
-    $group->{""}{max} = $opt->{max};
+    my $range = _deep_copy($opt->{range});
+    for (qw(min max range_round range_show)) {
+	(my $r = $_) =~ s/^range_//;
+	$range->{""}{$r} = $opt->{$_} if exists $opt->{$_};
+    }
 
     for my $set (@$data) {
 	$set = { v => $set } if ref($set) eq "ARRAY";
 	my $v = $set->{v};
-	my $g = $set->{group} ||= "";
+	my $g = $set->{range} ||= "";
 
 	my($min, $max) = _default_minmax($param);
 	for (@$v) {
@@ -193,23 +240,48 @@ sub _data {
 		    $set->{$k} = $h{$k};
 		}
 
-		my $gv = $group->{$g}{$k};
+		my $gv = $range->{$g}{$k};
 		if (!defined($gv) ||
 		    ($k eq "min" && $h{$k} < $gv) ||
 		    ($k eq "max" && $h{$k} > $gv)
 		   )
 		{
-		    $group->{$g}{$k} = $h{$k};
+		    $range->{$g}{$k} = $h{$k};
 		}
 	    }
 	}
     }
 
+    # should we round any of the ranges
+    for my $g (values %$range) {
+	next unless $g->{round};
+
+	use POSIX qw(floor ceil);
+	sub log10 { log(shift) / log(10) }
+
+	my($min, $max) = @$g{"min", "max"};
+	my $range = $max - $min;
+	next if $range == 0;
+	die "Assert" if $range < 0; 
+
+	my $step = 10 ** int(log10($range));
+	$step /= 10 if $step / $range >= 0.1;
+	$step *= 5 if $step / $range < 0.05;
+
+	$min = floor($min / $step - 0.2) * $step;
+	$max = ceil($max / $step + 0.2) * $step;
+
+	# zero based minimum is usually a good thing so make it more likely
+	$min = 0 if $min > 0 && $min/$range < 0.4;
+
+	@$g{"min", "max"} = ($min, $max);
+    }
+
     #use Data::Dump; dd $data;
-    #use Data::Dump; dd $group;
+    #use Data::Dump; dd $range;
 
     # encode data
-    my $e = $opt->{encoding} || "t";
+    my $e = $ENCODING_ALIAS{$opt->{encoding} || ""} || $opt->{encoding} || "t";
     my %enc = (
 	t => {
 	    null => -1,
@@ -241,7 +313,7 @@ sub _data {
     my $enc = $enc{$e} || croak("unsupported encoding $e");
     my @res;
     for my $set (@$data) {
-        my($min, $max) = @{$group->{$set->{group}}}{"min", "max"};
+        my($min, $max) = @{$range->{$set->{range}}}{"min", "max"};
 	my $v = $set->{v};
 	for (@$v) {
 	    if (defined($_) && $_ >= $min && $_ <= $max && $min != $max) {
@@ -254,6 +326,34 @@ sub _data {
 	push(@res, join($enc->{sep1}, @$v));
     }
     $param->{chd} = "$e:" . join($enc->{sep2}, @res);
+
+    # handle bar chart zero line if we charted negative data
+    if ($param->{cht} =~ /^b/) {
+        my($min, $max) = @{$range->{""}}{"min", "max"};
+	if ($min < 0) {
+	    $param->{chp} = $max < 0 ? 1 : sprintf "%.2f", -$min / ($max - $min);
+	}
+    }
+
+    # enable axis labels?
+    for (sort keys %$range) {
+	my $g = $range->{$_};
+	my @chxt = split(/,/, $param->{chxt} || "");
+	my @chxr;
+	if (my $r = $g->{show}) {
+	    my($min, $max) = @$g{"min", "max"};
+	    for ($min, $max) {
+		$_ = sprintf "%.2g", $_;
+	    }
+	    push(@chxt, $AXIS_ALIAS{$r} || $r);
+	    my $i = $#chxt;
+	    push(@chxr, "$i,$min,$max");
+	}
+	if (@chxt) {
+	    $param->{chxt} = join(",", @chxt);
+	    $param->{chxr} = join("|", @chxr);
+	}
+    }
 }
 
 sub _deep_copy {
@@ -279,19 +379,33 @@ URI::GoogleChart - Generate Google Chart URIs
      data => [45, 80, 100, 33],
  );
 
+ # save chart to a file
+ use LWP::Simple qw(getstore);
+ getstore($chart, "chart.png");
+
+ # or embed chart in an HTML file
+ use HTML::Entities;
+ my $enc_chart = encode_entities($chart);
+
+ open(my $fh, ">", "chart.html") || die;
+ print $fh qq(
+     <h1>My Chart</h1>
+     <p><img src="$enc_chart"></p>
+ );
+ close($fh) || die;
+
 =head1 DESCRIPTION
 
-This module provide a constructor method for Google Chart URIs.  Google will
-serve back PNG images of charts controlled by the provided parameters when
-these URI are dereferenced.  Normally these URIs will be embedded as C<< <img
-src='$chart'> >> tags in HTML documents.
+This module provide a constructor method for Google Chart URLs.  When
+dereferenced Google will serve back PNG images of charts described by the
+provided parameters.
 
 The Google Chart service is described at L<http://code.google.com/apis/chart/>
-and these pages also define the API in terms of the parameters these URIs
-take.  This module make it easier to generate URIs that conform to this API as
+and these pages also define the Web API in terms of the parameters these URLs
+take.  This module make it easier to generate URLs that conform to this API as
 it automatically takes care of data encoding and scaling, as well as hiding
 most of the cryptic parameter names that the API uses in order to generate
-shorter URIs.
+shorter URLs.
 
 The following constructor method is provided:
 
@@ -299,9 +413,9 @@ The following constructor method is provided:
 
 =item $uri = URI::GoogleChart->new( $type, $width, $height, %opt )
 
-The constructor method's 3 first arguments are mandatory and they define the
+The constructor method's first 3 arguments are mandatory and they define the
 type of chart to generate and the dimension of the image in pixels.
-The rest of the arguments are provided as key/value pairs.  The return value
+Additional arguments are provided as key/value pairs.  The return value
 is an HTTP L<URI> object, which can also be treated as a string.
 
 The $type argument can either be one of the type code documented at the Google
@@ -334,8 +448,9 @@ Charts page or one of the following more readable aliases:
     south_america
     usa
 
-The key/value pairs can either be one of the C<chXXX> codes documented on the
-Google Chart pages or one of the following:
+The additional arguments in the form of key/value pairs can either be one of
+the C<chXXX> parameters documented on the Google Chart pages or one of the
+following:
 
 =over
 
@@ -347,43 +462,72 @@ Google Chart pages or one of the following:
 
 =item data => $v1
 
-The data to be charted is provided as an array of data series.  Each series is
-defined by a hash with the C<v> element being an array of data points in the
-series.  Missing data points should be provided as C<undef>.  Other hash
-elements can be provided to define various properties of the series.  These are
-described below.
+The data to be charted is provided as an array of data series.  In the most
+general form each series is defined by a hash with the "v" element being an
+array of data points (numbers) in the series.  Missing data points should be
+provided as C<undef>.  Other hash elements can be provided to define various
+properties of the series.  These are described below.
 
 As a short hand when you don't need to define other properties besides the data
-points you can just provide an array of numbers instead of the series hash.
+points you can provide an array of numbers instead of the series hash.
 
-As a short hand when you only have a single data series, you can just provide a
+As a short hand when you only have a single data series, you can provide a
 single array of numbers, and finally if you only have a single number you can
 provide it without wrapping it in an array.
 
-The following data series properties can be provided.
+Data series belong to ranges.  A range is defined by a minimum and a maximum
+value.  Data points are scaled so that they are plotted relative to the range
+they belong to.  For example if the range is (5 .. 10) then a data point value
+of 7.5 is plotted in the middle of the chart area.  Ranges are automatically
+calculated based on the data provided, but you can also force certain minimum
+and maximum values to apply.
 
-The "group" property can be used to group data series together.  Series that
-have the same group value belong to the same group.  Values in the same group
-are scaled based on the minimum and maximum data point provided in that group. 
-Data series without a "group" property belong to the default group.
+The following data series properties can be provided in addition to "v"
+described above:
+
+The "range" property can be used to group data series together that belong to
+the same range.  The value of the "range" property is a range name.  Data
+series without a "range" property belong to the default range.
 
 =item min => $num
 
 =item max => $num
 
-Defines the minimum and maximum value for the default group.  If not provided
-the minimum and maximum is calculated from the data points belonging to this
-group.  Chart types that plot relative values make the default minimum 0 so
-the relative size of the data points stay the same after scaling.
+Defines the default minimum and maximum value for the default range.  If not
+provided the minimum and maximum is calculated from the data points belonging
+to this range.
 
-The data points are scaled so that they are plotted relative to the ($min ..
-$max) range.  For example if the ($min .. $max) range is (5 .. 10) then a data
-point value of 7.5 is plotted in the middle of the chart area.
+The specified minimum or maximum are ignored if some of data values provided
+are outside this range.
 
-=item group => { $name => { min => $min, max => $max }, ...},
+Chart types that plot relative values (like bar charts or venn diagrams) should
+use 0 as the minimum, as this make the relative size of the data points stay
+the same after scaling.  Because of this the default default minimum for these
+charts is 0, so you don't actually need to specify it.
 
-Define parameters for named data series groups.  Currently you can only set
-up the minimum and maximum values used for scaling the data points.
+=item range_round => $bool
+
+Extend the default range so that the min/max values are nice
+multiples of 1, 5, 10, 50, 100,... and such numbers.  This gives the chart more
+"air" and look better if you display the range of values with "range_show".
+
+=item range_show => "left"
+
+=item range_show => "right"
+
+=item range_show => "top"
+
+=item range_show => "bottom"
+
+Makes the given axis show the range of values charted for the default range.
+
+=item range => { $name => \%opt, ...},
+
+Define parameters for named data series ranges.  The range named "" is the
+default range.
+
+The option values that can be set are "min", "max", "round", "show".  See the
+description of the corresponding entry for the default range above.
 
 =item encoding => "t"
 
@@ -396,14 +540,14 @@ resolution they provide and in their readability and verbosity.  Resolution
 matters if you generate big charts.  Verbosity matters as some web client might
 refuse to dereference URLs that are too long.
 
-The "t" encoding is the most readable and verbose.  It might consume up to 5
-bytes per data point. It provide a resolution of 1/1000.
+The "t" (or "text") encoding is the most readable and verbose.  It might
+consume up to 5 bytes per data point. It provide a resolution of 1/1000.
 
-The "s" encoding is the most compact; only consuming 1 byte per data point.  It
-provide a resolution of 1/62.
+The "s" (or "simple") encoding is the most compact; only consuming 1 byte per
+data point.  It provide a resolution of 1/62.
 
-The "e" encoding provides the most resolution and it consumes 2 bytes per data
-point.  It provide a resolution of 1/4096.
+The "e" (or "extended") encoding provides the most resolution and it consumes 2
+bytes per data point.  It provide a resolution of 1/4096.
 
 The default encoding is currently "t"; but expect this to change.  The default
 ought to be automatically selected based on the resolution of the chart and
@@ -417,14 +561,42 @@ Sets the colors to use for charting the data series.  The canonical form for
 $color is hexstrings either of "RRGGBB" or "RRGGBBAA" form.  When you use this
 interface you might also use "RGB" form as well as some comon names like "red",
 "blue", "green", "white", "black",... which are expanded to the canonical form
-in the URI.
+in the URL.
+
+The built in colors are the 16 colors of the HTML specification
+(see L<http://en.wikipedia.org/wiki/HTML_color_names>).
+If you want to use additional color names you can assign your mapping to
+the %URI::GoogleChart::COLOR_ALIAS hash before start creating charts.  Example:
+
+    local $URI::GoogleChart::COLOR_ALIAS{"gold"} = "FFD700";
+
+
+=item background => $color
+
+Sets the color for the chart background.  See description for color above for
+how to specify color values.  The color value "transparent" gives you a fully
+transparent background.
 
 =item title => $str
 
-=item title => { text => $str, color => $color, fontsize => $fontsize }
+=item title => [ $str, $color, $fontsize ]
 
 Sets the title for the chart; optionally changing the color and fontsize used
 for the title.
+
+=item label = $str
+
+=item label = [ $str, $str,... ]
+
+Labels the data (or data series) of the chart.
+
+=item rotate => $degrees
+
+Rotate the orientation of a pie chart (clockwise).
+
+The first slice starts at the right side of the pie (at 3 o'clock).  If you
+rotate the pie 90 degrees the first slice starts at the bottom.  If you rotate
+-90 degrees (or 270) the first slices starts at the top of the pie. 
 
 =item margin => $num
 

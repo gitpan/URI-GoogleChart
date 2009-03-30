@@ -58,35 +58,45 @@ EOT
 
 chart("pie-3d", 250, 100,
     data => [60, 40],
-    chl => "Hello|World",
+    label => ["Hello", "World"],
 );
 
 chart("pie", 500, 150,
     data => [80, 20],
     color => ["yellow", "black"],
-    chl => "Resembes Pack-man|Does not resemble Pac-man",
-    chf => "bg,s,000000",
-    chp => 0.6,
+    label => ["Resembes Pack-man", "Does not resemble Pac-man"],
+    background => "black",
+    rotate => 35,
     margin => [0, 30, 10, 10],
 );
 
+chart("pie", 250, 200,
+    data => [(1) x 12],
+    rotate => -90,
+    label => [1 .. 12],
+    encoding => "s",
+    background => "transparent",
+);
+
 chart("lines", 200, 125,
-    data => [40,60,60,45,47,75,70,72,],
-    min => 0, max => 100,
+    data => [37,60,60,45,47,74,70,72,],
+    range_show => "left",
+    range_round => 1,
 );
 
-chart("sparklines", 200, 125,
+chart("sparklines", 200, 75,
     data => [27,25,60,31,25,39,25,31,26,28,80,28,27,31,27,29,26,35,70,25],
-    min => 0, max => 100,
+    range_round => 1,
 );
 
-chart("lxy", 200, 125,
+chart("lxy", 250, 125,
     data => [
         [10,20,40,80,90,95,99],
 	[20,30,40,50,60,70,80],
         [undef],
         [5,25,45,65,85],
     ],
+    label => ["blue", "red"],
     color => [qw(3072F3 red)],
 );
 
@@ -108,13 +118,38 @@ chart("vertical-grouped-bars", 300, 125,
     chco => "3072F3,ff0000",
 );
 
-chart("gom", 125, 80, data => 80, chl => 80, title => "Awsomness");
+chart("vertical-stacked-bars", 150, 120,
+    data => [10, -10, -5, 25, 15, 5],
+    chbh => "a",
+    color => "gray",
+    margin => 5,
+);
+
+chart("vertical-stacked-bars", 150, 120,
+    data => [-10, -10, -5, -25, -15, -5],
+    max => 0,
+    chbh => "a",
+    color => "gray",
+    margin => 5,
+);
+
+chart("venn", 200, 100,
+    data => [100, 20, 20, 20, 20, 0, 0],
+    color => ["red", "lime", "blue"],
+    label => ["First", "Second", "Third"],
+);
+
+chart("gom", 125, 80,
+    data => 80,
+    label => 80,
+    title => "Awsomness",
+);
 
 chart("usa", 200, 100);
 
 chart("europe", 300, 150,
     color => ["white", "green", "red"],
-    chf => "bg,s,EAF7FE", # water
+    background => "EAF7FE", # water blue
     # nordic populations 
     chld => "NOSEDKFIIS",
     data => [4.5e6, 9e6, 5.3e6, 5.1e6, 307261],
@@ -144,6 +179,7 @@ sub chart {
 	}
     }
     $src =~ s/^chart/\$u = URI::GoogleChart->new/;
+    $uri =~ s/&/&amp;/g;
 
     print $fh <<EOT
   <div class="eg">
