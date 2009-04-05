@@ -2,7 +2,7 @@ package URI::GoogleChart;
 
 use strict;
 
-our $VERSION = "0.03";
+our $VERSION = "0.04";
 
 use URI;
 use Carp qw(croak carp);
@@ -152,6 +152,7 @@ sub new {
 	}
     );
 
+    my $data = delete $opt{data};  # need to be processed last
     for my $k (keys %opt) {
 	if (my $h = $handle{$k}) {
 	    $h->($opt{$k}, \%param, \%opt) if ref($h) eq "CODE";
@@ -162,6 +163,7 @@ sub new {
 		unless $k =~ /^ch/;
 	}
     }
+    _data($data, \%param, \%opt) if $data;
 
     # generate URI
     my $uri = URI->new($BASE);
@@ -182,7 +184,7 @@ sub _color {
 }
 
 sub _sort_chart_keys {
-    my %o = ( cht => 1, chtm => 2, chs => 3 );
+    my %o = ( cht => 1, chtm => 2, chs => 3, chd => 100 );
     return sort { ($o{$a}||=99) <=> ($o{$b}||=99) || $a cmp $b } @_;
 }
 
