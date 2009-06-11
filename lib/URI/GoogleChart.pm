@@ -2,7 +2,7 @@ package URI::GoogleChart;
 
 use strict;
 
-our $VERSION = "0.04";
+our $VERSION = "1.00";
 
 use URI;
 use Carp qw(croak carp);
@@ -67,7 +67,7 @@ our %AXIS_ALIAS = (
     "left"   => "y",
     "right"  => "r",
     "top"    => "t",
-    "bottom" => "y",
+    "bottom" => "x",
 );
 
 our %ENCODING_ALIAS = (
@@ -220,16 +220,46 @@ sub _data {
 	$range->{""}{$r} = $opt->{$_} if exists $opt->{$_};
     }
 
+    my $vcount = 0;
     for my $set (@$data) {
 	$set = { v => $set } if ref($set) eq "ARRAY";
 	my $v = $set->{v};
-	my $g = $set->{range} ||= "";
+	my $r = $set->{range} ||= "";
+	my $rh = $range->{$r} ||= {};
 
 	my($min, $max) = _default_minmax($param);
+	my $i = 0;
 	for (@$v) {
 	    next unless defined;
 	    $min = $_ if !defined($min) || $_ < $min;
 	    $max = $_ if !defined($max) || $_ > $max;
+	    if ($param->{cht} =~ /^b.s\z/) {
+		# stacked stuff
+		$rh->{stacked}{min}[$i] ||= 0;
+		$rh->{stacked}{max}[$i] ||= 0;
+		$rh->{stacked}{$_ < 0 ? "min" : "max"}[$i] += $_;
+	    }
+	}
+	continue {
+	    $i++;
+	}
+	$vcount += @$v;
+
+	if ($rh->{stacked}) {
+	    # XXX we really only need to this after we have processed
+	    # the last dataset, the other rounds it's wasted effort
+	    ($min, $max) = (0, 0);
+	    for (qw(min max)) {
+		for my $v (@{$rh->{stacked}{$_}}) {
+		    next unless defined $v;
+		    if ($_ eq "min") {
+			$min = $v if $v < $min;
+		    }
+		    else {
+			$max = $v if $v > $max;
+		    }
+		}
+	    }
 	}
 
 	if (defined $min) {
@@ -242,26 +272,26 @@ sub _data {
 		    $set->{$k} = $h{$k};
 		}
 
-		my $gv = $range->{$g}{$k};
-		if (!defined($gv) ||
-		    ($k eq "min" && $h{$k} < $gv) ||
-		    ($k eq "max" && $h{$k} > $gv)
+		my $rv = $rh->{$k};
+		if (!defined($rv) ||
+		    ($k eq "min" && $h{$k} < $rv) ||
+		    ($k eq "max" && $h{$k} > $rv)
 		   )
 		{
-		    $range->{$g}{$k} = $h{$k};
+		    $rh->{$k} = $h{$k};
 		}
 	    }
 	}
     }
 
     # should we round any of the ranges
-    for my $g (values %$range) {
-	next unless $g->{round};
+    for my $r (values %$range) {
+	next unless $r->{round};
 
 	use POSIX qw(floor ceil);
 	sub log10 { log(shift) / log(10) }
 
-	my($min, $max) = @$g{"min", "max"};
+	my($min, $max) = @$r{"min", "max"};
 	my $range = $max - $min;
 	next if $range == 0;
 	die "Assert" if $range < 0; 
@@ -276,14 +306,31 @@ sub _data {
 	# zero based minimum is usually a good thing so make it more likely
 	$min = 0 if $min > 0 && $min/$range < 0.4;
 
-	@$g{"min", "max"} = ($min, $max);
+	@$r{"min", "max"} = ($min, $max);
     }
 
     #use Data::Dump; dd $data;
     #use Data::Dump; dd $range;
 
     # encode data
-    my $e = $ENCODING_ALIAS{$opt->{encoding} || ""} || $opt->{encoding} || "t";
+    my $e = $ENCODING_ALIAS{$opt->{encoding} || ""} || $opt->{encoding};
+    unless ($e) {
+	# try to me a little smart about selecting a suitable encoding based
+	# on the number of data points we're plotting and the resolution of
+	# the generated image
+	my @s = ($param->{chs} =~ /(\d+)/g);
+	my $res = $s[0] * $s[1];
+	if ($vcount < 20) {
+	    $e = "t";
+	}
+	elsif ($vcount > 256 || $res < 300*200) {
+	    $e = "s";
+	}
+	else {
+	    $e = "e";
+	}
+    }
+
     my %enc = (
 	t => {
 	    null => -1,
@@ -291,7 +338,7 @@ sub _data {
 	    sep2 => "|",
 	    fmt => sub {
 		my $v = 100 * shift;
-		$v = sprintf "%.1f", $v if $v != int($v);
+		$v = sprintf "%.1f", $v if $v ne int($v);
 		$v;
 	    },
 	},
@@ -339,15 +386,15 @@ sub _data {
 
     # enable axis labels?
     for (sort keys %$range) {
-	my $g = $range->{$_};
+	my $r = $range->{$_};
 	my @chxt = split(/,/, $param->{chxt} || "");
 	my @chxr;
-	if (my $r = $g->{show}) {
-	    my($min, $max) = @$g{"min", "max"};
+	if (my $rshow = $r->{show}) {
+	    my($min, $max) = @$r{"min", "max"};
 	    for ($min, $max) {
 		$_ = sprintf "%.2g", $_;
 	    }
-	    push(@chxt, $AXIS_ALIAS{$r} || $r);
+	    push(@chxt, $AXIS_ALIAS{$rshow} || $rshow);
 	    my $i = $#chxt;
 	    push(@chxr, "$i,$min,$max");
 	}
@@ -376,9 +423,11 @@ URI::GoogleChart - Generate Google Chart URIs
 
 =head1 SYNOPSIS
 
- use URI::GoggleChart;
- my $chart = URI::GoogleChart->new("line", 300, 100,
-     data => [45, 80, 100, 33],
+ use URI::GoogleChart;
+ my $chart = URI::GoogleChart->new("lines", 300, 100,
+     data => [45, 80, 55, 68],
+     range_show => "left",
+     range_round => 1,
  );
 
  # save chart to a file
@@ -399,7 +448,7 @@ URI::GoogleChart - Generate Google Chart URIs
 =head1 DESCRIPTION
 
 This module provide a constructor method for Google Chart URLs.  When
-dereferenced Google will serve back PNG images of charts described by the
+dereferenced Google will serve back PNG images of charts based on the
 provided parameters.
 
 The Google Chart service is described at L<http://code.google.com/apis/chart/>
@@ -551,9 +600,8 @@ data point.  It provide a resolution of 1/62.
 The "e" (or "extended") encoding provides the most resolution and it consumes 2
 bytes per data point.  It provide a resolution of 1/4096.
 
-The default encoding is currently "t"; but expect this to change.  The default
-ought to be automatically selected based on the resolution of the chart and
-the number of data points provided.
+The default encoding is  automatically selected based on the resolution of the
+chart and the number of data points provided.
 
 =item color => $color
 

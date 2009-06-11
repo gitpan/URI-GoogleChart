@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               URI-GoogleChart
-version:            0.04
+version:            1.00
 abstract:           Generate Google Chart URIs
 author:
     - Gisle Aas <gisle@activestate.com>

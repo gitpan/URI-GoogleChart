@@ -2,11 +2,16 @@
 
 use strict;
 use Test;
-plan tests => 1;
+plan tests => 2;
 
 use URI::GoogleChart;
 
-open(my $fh, ">", "examples.html") || die "Can't create examples.html: $!";
+my $outfile = "examples.html";
+my $newfile = $outfile;
+$newfile .= ".new" if -f $newfile;
+
+open(my $fh, ">", $newfile) || die "Can't create $newfile: $!";
+binmode($fh);
 print $fh <<EOT;
 <html>
 <head>
@@ -105,32 +110,33 @@ chart("horizontal-stacked-bars", 200, 150,
         [10,50,60,80,40],
 	[50,60,100,40,20],
     ],
-    min => 0, max => 200,
     color => [qw(3072F3 f00)],
+    range_show => "bottom",
 );
 
-chart("vertical-grouped-bars", 300, 125,
+chart("vertical-grouped-bars", 320, 125,
     data => [
         [10,50,60,80,40],
 	[50,60,100,40,20],
     ],
-    min => 0, max => 100,
     chco => "3072F3,ff0000",
+    range_show => "left",
 );
 
 chart("vertical-stacked-bars", 150, 120,
-    data => [10, -10, -5, 25, 15, 5],
+    data => [10, -10, -5, 30, 15, 5],
     chbh => "a",
     color => "gray",
     margin => 5,
+    range_show => "left",
 );
 
 chart("vertical-stacked-bars", 150, 120,
     data => [-10, -10, -5, -25, -15, -5],
-    max => 0,
     chbh => "a",
     color => "gray",
     margin => 5,
+    range_show => "left",
 );
 
 chart("venn", 200, 100,
@@ -165,6 +171,14 @@ EOT
 
 ok(close($fh));
 
+if ($newfile ne $outfile) {
+    ok(file_content($newfile), file_content($outfile));
+    unlink($newfile);
+}
+else {
+    skip("Regenerating $outfile");
+}
+
 sub chart {
     my $uri = URI::GoogleChart->new(@_);
 
@@ -188,6 +202,13 @@ sub chart {
     <span class="uri">$uri</span>
   </div>
 EOT
+}
+
+sub file_content {
+    my $filename = shift;
+    open(my $fh, "<", $filename) || return undef;
+    binmode($fh);
+    return do { local $/; readline($fh) }
 }
 
 __END__
