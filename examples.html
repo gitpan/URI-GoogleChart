@@ -113,6 +113,25 @@ from them.
     <span class="uri">http://chart.apis.google.com/chart?cht=lxy&amp;chs=250x125&amp;chco=3072F3,FF0000&amp;chdl=blue%7Cred&amp;chd=s:CJWw369,JPWdjqw,_,AMZn0</span>
   </div>
   <div class="eg">
+    <pre class="src">$u = URI::GoogleChart->new("lines", 400, 150,
+    data => [
+        { range => "a", v => [20, 21, 25, 25, 24, 21] },
+	{ range => "b", v => [1.1, 1.1, 1.3, 1.1, 1.7, 1.9] },
+    ],
+    range => {
+	a => { round => 1, show => "left" },
+	b => { round => 1, show => "right" },
+    },
+    color => ["red", "blue"],
+    label => ["Damage", "Profit"],
+    chxl => "0:|Jan|Feb|Mar|Apr|May|Jun",
+    chxt => "x",
+);
+</pre>
+    <div><img src='http://chart.apis.google.com/chart?cht=lc&amp;chs=400x150&amp;chco=FF0000,0000FF&amp;chdl=Damage%7CProfit&amp;chxl=0:%7CJan%7CFeb%7CMar%7CApr%7CMay%7CJun&amp;chxr=1,20,26%7C2,1,2&amp;chxt=x,y,r&amp;chd=t:8.3,25,91.7,91.7,75,25%7C10,10,30,10,70,90.0'></div>
+    <span class="uri">http://chart.apis.google.com/chart?cht=lc&amp;chs=400x150&amp;chco=FF0000,0000FF&amp;chdl=Damage%7CProfit&amp;chxl=0:%7CJan%7CFeb%7CMar%7CApr%7CMay%7CJun&amp;chxr=1,20,26%7C2,1,2&amp;chxt=x,y,r&amp;chd=t:8.3,25,91.7,91.7,75,25%7C10,10,30,10,70,90.0</span>
+  </div>
+  <div class="eg">
     <pre class="src">$u = URI::GoogleChart->new("horizontal-stacked-bars", 200, 150,
     data => [
         [10,50,60,80,40],
@@ -201,6 +220,6 @@ from them.
     <span class="uri">http://chart.apis.google.com/chart?cht=t&amp;chtm=europe&amp;chs=300x150&amp;chco=FFFFFF,008000,FF0000&amp;chf=bg,s,EAF7FE&amp;chld=NOSEDKFIIS&amp;chd=t:48.2,100,57.4,55.1,0</span>
   </div>
 
-<p style="font-size: small;">Page generated with URI::GoogleChart v1.01</p>
+<p style="font-size: small;">Page generated with URI::GoogleChart v1.02</p>
 </body>
 </html>
